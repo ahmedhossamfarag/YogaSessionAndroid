@@ -1,8 +1,8 @@
 package com.example.yoga_session_android.lib
 
-import java.io.File
+import androidx.documentfile.provider.DocumentFile
 
-fun pickJsonFile(dirPath: String): String? {
-    val jsonFile = File(dirPath).listFiles()?.firstOrNull { it.extension == "json" }
-    return jsonFile?.absolutePath
+fun pickJsonFile(dir: DocumentFile): DocumentFile? {
+    val jsonFile = dir.listFiles().firstOrNull { it.name?.endsWith(".json") == true }
+    return jsonFile
 }

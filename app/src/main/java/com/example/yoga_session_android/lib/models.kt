@@ -1,10 +1,11 @@
 package com.example.yoga_session_android.lib
 
 import android.media.MediaPlayer
+import androidx.documentfile.provider.DocumentFile
 
-class Frame(val image: String, val text: String, val startSec: Int, val endSec: Int)
+class Frame(val image: DocumentFile, val text: String, val startSec: Int, val endSec: Int)
 
-class Segment(val name: String, val audio: String, val durationSec: Int, val script: Array<Frame>, val loopable: Boolean, val loopCount: Int){
+class Segment(val name: String, val audio: DocumentFile, val durationSec: Int, val script: Array<Frame>, val loopable: Boolean, val loopCount: Int){
     lateinit var audioPlayer: MediaPlayer
     lateinit var timeline: Array<Frame?>
     var currentSec: Int = 0
@@ -14,7 +15,7 @@ class Segment(val name: String, val audio: String, val durationSec: Int, val scr
 
     fun init(){
         audioPlayer = MediaPlayer()
-        audioPlayer.setDataSource(audio)
+        audioPlayer.setDataSource(audio.uri.path)
         audioPlayer.prepare()
         audioPlayer.isLooping = true
         timeline = arrayOfNulls(durationSec)
@@ -65,7 +66,7 @@ class Segment(val name: String, val audio: String, val durationSec: Int, val scr
 class SessionMetadata(val id: String, val title: String, val category: String, val defaultLoopCount: Int, val tempo: String)
 
 
-class Assets(val images: Map<String, String>, val audios: Map<String, String>)
+class Assets(val images: Map<String, DocumentFile?>, val audios: Map<String, DocumentFile?>)
 
 class Session(val metadata: SessionMetadata, val segments: Array<Segment>){
     var currentSegment: Segment? = null

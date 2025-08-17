@@ -1,7 +1,8 @@
 package com.example.yoga_session_android.lib
 
+import android.content.ContentResolver
+import androidx.documentfile.provider.DocumentFile
 import org.json.JSONObject
-import java.io.File
 
 class ParsingException(message: String) : Exception(message)
 
@@ -18,29 +19,41 @@ fun parseMetadata(json: JSONObject) : SessionMetadata {
     )
 }
 
-fun parseAssets(json: JSONObject, filepath: String) : Assets {
-    if (!json.has("image") || !json.has("audio")) {
+fun parseAssets(json: JSONObject, dir: DocumentFile) : Assets {
+    if (!json.has("images") || !json.has("audio")) {
         throw ParsingException("Invalid session file. File is missing assets.")
     }
-    val dir = File(filepath).parent
+    val images = dir.findFile("Images")
+    val audio = dir.findFile("Audio")
+    if (images == null || audio == null) {
+        throw ParsingException("Invalid session file. File is missing assets.")
+    }
     val assets = Assets(
-        json.getJSONArray("images").let {seq ->
+        json.getJSONObject("images").let {seq ->
             sequence {
-                for (i in 0 until seq.length())
-                    yield(seq.getString(i) to  File(dir, seq.getString(i)).absolutePath)
+                for (i in 0 until seq.length()) {
+                    val name = seq.names()!!.getString(i)
+                    yield(
+                        name to images.findFile(seq.getString(name))
+                    )
+                }
             }.toMap() },
-        json.getJSONArray("audio").let {seq ->
+        json.getJSONObject("audio").let {seq ->
             sequence {
-                for (i in 0 until seq.length())
-                    yield(seq.getString(i) to File(dir, seq.getString(i)).absolutePath)
+                for (i in 0 until seq.length()) {
+                    val name = seq.names()!!.getString(i)
+                    yield(
+                        name to audio.findFile(seq.getString(name))
+                    )
+                }
             }.toMap() }
     )
-    assets.images.forEach { if (!File(it.value).exists()) throw ParsingException("Invalid session file. Image file ${it.value} does not exist.") }
-    assets.audios.forEach { if (!File(it.value).exists()) throw ParsingException("Invalid session file. Audio file ${it.value} does not exist.") }
+    assets.images.forEach { if (it.value == null) throw ParsingException("Invalid session file. Image file ${it.value} does not exist.") }
+    assets.audios.forEach { if (it.value == null) throw ParsingException("Invalid session file. Audio file ${it.value} does not exist.") }
     return assets
 }
 
-fun parseFrame(json: JSONObject, images: Map<String, String>) : Frame {
+fun parseFrame(json: JSONObject, images: Map<String, DocumentFile?>) : Frame {
     if (arrayOf("imageRef", "startSec", "endSec", "text").any { !json.has(it) }){
         throw ParsingException("Invalid session file. Some frame keys are missing.")
     }
@@ -49,7 +62,7 @@ fun parseFrame(json: JSONObject, images: Map<String, String>) : Frame {
     }
     return Frame(
         images[json.getString("imageRef")]!!,
-        images[json.getString("text")]!!,
+        json.getString("text"),
         json.getInt("startSec"),
         json.getInt("endSec")
     )
@@ -82,13 +95,13 @@ fun parseSegment(json: JSONObject, assets: Assets, metadata: SessionMetadata) : 
     )
 }
 
-fun parseSession(filepath: String) : Session {
-    val content = File(filepath).readText(Charsets.UTF_8)
+fun parseSession(documentFile: DocumentFile, contentResolver: ContentResolver) : Session {
+    val content = contentResolver.openInputStream(documentFile.uri)!!.bufferedReader().readText()
     val json = JSONObject(content)
     if (json.has("metadata")){
         val metadata = parseMetadata(json.getJSONObject("metadata"))
         if (json.has("assets")){
-            val assets = parseAssets(json.getJSONObject("assets"), filepath)
+            val assets = parseAssets(json.getJSONObject("assets"), documentFile.parentFile!!)
             if (json.has("sequence")){
                 val segments = json.getJSONArray("sequence").let {seq -> sequence { for (i in 0 until seq.length()) yield(parseSegment(seq.getJSONObject(i), assets, metadata)) }.toList().toTypedArray() }
                 return Session(metadata, segments)

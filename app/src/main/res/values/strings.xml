@@ -1,3 +1,7 @@
 <resources>
     <string name="app_name">Yoga-Session-Android</string>
+    <string name="no_file_selected">No File Selected</string>
+    <string name="pick_folder">Pick Folder</string>
+    <string name="next">Next</string>
+    <string name="duration_seconds">duration: %1$d s</string>
 </resources>

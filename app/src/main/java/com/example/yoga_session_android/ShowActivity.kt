@@ -64,4 +64,14 @@ class ShowActivity : ComponentActivity() {
             session.play()
         }
     }
+
+    override fun onPause() {
+        super.onPause()
+        if (playing) togglePlay()
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        job.cancel()
+    }
 }

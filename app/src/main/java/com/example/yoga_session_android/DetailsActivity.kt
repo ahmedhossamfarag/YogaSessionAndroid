@@ -2,7 +2,6 @@ package com.example.yoga_session_android
 
 import android.content.Intent
 import android.os.Bundle
-import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.enableEdgeToEdge
 import com.example.yoga_session_android.databinding.DetailsActivityBinding

@@ -1,5 +1,6 @@
 package com.example.yoga_session_android.lib
 
+import android.content.Context
 import android.media.MediaPlayer
 import androidx.documentfile.provider.DocumentFile
 
@@ -9,18 +10,18 @@ class Segment(val name: String, val audio: DocumentFile, val durationSec: Int, v
     lateinit var audioPlayer: MediaPlayer
     lateinit var timeline: Array<Frame?>
     var currentSec: Int = 0
-    var currentLoop: Int = 0
+    var currentLoop: Int = 1
 
     val isAvailable get() = script.isNotEmpty() && loopCount > 0
 
-    fun init(){
+    fun init(context: Context){
         audioPlayer = MediaPlayer()
-        audioPlayer.setDataSource(audio.uri.path)
+        audioPlayer.setDataSource(context, audio.uri)
         audioPlayer.prepare()
         audioPlayer.isLooping = true
         timeline = arrayOfNulls(durationSec)
         for (frame in script){
-            for (sec in frame.startSec..frame.endSec){
+            for (sec in frame.startSec until frame.endSec){
                 timeline[sec] = frame
             }
         }
@@ -71,16 +72,18 @@ class Assets(val images: Map<String, DocumentFile?>, val audios: Map<String, Doc
 class Session(val metadata: SessionMetadata, val segments: Array<Segment>){
     var currentSegment: Segment? = null
     var currentSegmentIndex: Int = -1
+    lateinit var context: Context
 
     val isAvailable get() = segments.isNotEmpty()
 
     val durationSec get() = segments.sumOf { it.durationSec * it.loopCount }
 
-    fun init(){
+    fun init(context: Context){
+        this.context = context
         currentSegment = segments.firstOrNull { it.isAvailable }
         if (currentSegment != null){
             currentSegmentIndex = segments.indexOf(currentSegment)
-            currentSegment?.init()
+            currentSegment?.init(context)
         }
     }
 
@@ -93,7 +96,7 @@ class Session(val metadata: SessionMetadata, val segments: Array<Segment>){
             currentSegment = segments.sliceArray(currentSegmentIndex + 1 until segments.size).firstOrNull { it.isAvailable }
             if (currentSegment == null) return null
             currentSegmentIndex = segments.indexOf(currentSegment)
-            currentSegment!!.init()
+            currentSegment!!.init(context)
             currentSegment!!.play()
             return currentSegment!!.nextFrame
         }

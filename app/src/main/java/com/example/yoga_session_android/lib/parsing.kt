@@ -78,7 +78,7 @@ fun parseSegment(json: JSONObject, assets: Assets, metadata: SessionMetadata) : 
         json.getInt("durationSec"),
         frames,
         loopable,
-        loopCount = if (json.has("loopCount")) json.getInt("loopCount") else metadata.defaultLoopCount
+        loopCount = if (loopable) if (json.has("iterations")) json.getInt("iterations") else metadata.defaultLoopCount else 1
     )
 }
 
